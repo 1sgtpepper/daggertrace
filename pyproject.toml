@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daggertrace"
+version = "0.4.0"
+description = "Research checker for borrowed-storage writes by supported Triton HOPs in PyTorch AOTAutograd backward graphs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "DaggerTrace contributors"}]
+keywords = ["pytorch", "triton", "gpu", "autograd", "program-analysis"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/1sgtpepper/daggertrace"
+Documentation = "https://github.com/1sgtpepper/daggertrace/tree/main/docs"
+Issues = "https://github.com/1sgtpepper/daggertrace/issues"
+Changelog = "https://github.com/1sgtpepper/daggertrace/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.12", "build>=1.2", "setuptools>=77.0.3"]
+
+[project.scripts]
+daggertrace = "daggertrace.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+daggertrace = ["licenses/*.txt"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "gpu: requires CUDA and Triton",
+  "package: requires package build artifacts or source-archive inspection",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

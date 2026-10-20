@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-light:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install validation dependencies
+        run: python -m pip install --disable-pip-version-check '.[dev]'
+      - name: Validate dependency-light surface
+        run: ./scripts/validate.sh
+
+  package-smoke:
+    runs-on: ubuntu-24.04
+    needs: dependency-light
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install package build tooling
+        run: python -m pip install --disable-pip-version-check '.[dev]'
+      - name: Build wheel and source distribution
+        run: python scripts/build_dist.py --wheel --sdist --outdir "$RUNNER_TEMP/daggertrace-dist"
+      - name: Validate source-archive contents
+        run: python -m pytest -q -m package
+      - name: Smoke-install wheel and source distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          dist_dir="$RUNNER_TEMP/daggertrace-dist"
+          wheels=("$dist_dir"/*.whl)
+          sdists=("$dist_dir"/*.tar.gz)
+          test "${#wheels[@]}" -eq 1
+          test "${#sdists[@]}" -eq 1
+
+          smoke_root=$(mktemp -d)
+          python -m venv "$smoke_root/wheel"
+          "$smoke_root/wheel/bin/python" -m pip install --disable-pip-version-check --no-index --no-deps "${wheels[0]}"
+          test "$(cd "$smoke_root" && "$smoke_root/wheel/bin/daggertrace" --version)" = "daggertrace 0.4.0"
+          "$smoke_root/wheel/bin/python" -c 'from importlib.resources import files; from pathlib import Path; resource = files("daggertrace").joinpath("licenses/UNSLOTH-APACHE-2.0.txt"); assert resource.read_bytes() == Path("src/daggertrace/licenses/UNSLOTH-APACHE-2.0.txt").read_bytes()'
+          "$smoke_root/wheel/bin/python" -c 'import sys; import daggertrace.replay; assert not {"packaging", "torch", "triton"} & set(sys.modules)'
+          # Wheels intentionally omit developer evidence; this is the installed-entrypoint smoke against checkout evidence.
+          "$smoke_root/wheel/bin/daggertrace" replay evidence/results/bundle/liger/liger-rmsnorm --json >/dev/null
+          "$smoke_root/wheel/bin/daggertrace" replay evidence/results/bundle/art/openpipe-art-local-stats --json >/dev/null
+
+          python -m venv "$smoke_root/sdist"
+          "$smoke_root/sdist/bin/python" -m pip install --disable-pip-version-check --no-deps "${sdists[0]}"
+          "$smoke_root/sdist/bin/python" -m pip install --disable-pip-version-check 'pytest>=8' 'ruff>=0.12'
+          "$smoke_root/sdist/bin/python" -c 'import pathlib, sys; import daggertrace; assert pathlib.Path(sys.prefix) in pathlib.Path(daggertrace.__file__).parents'
+          test "$(cd "$smoke_root" && "$smoke_root/sdist/bin/daggertrace" --version)" = "daggertrace 0.4.0"
+          "$smoke_root/sdist/bin/python" -c 'from importlib.resources import files; from pathlib import Path; resource = files("daggertrace").joinpath("licenses/UNSLOTH-APACHE-2.0.txt"); assert resource.read_bytes() == Path("src/daggertrace/licenses/UNSLOTH-APACHE-2.0.txt").read_bytes()'
+          sdist_root_parent=$(mktemp -d)
+          tar -xzf "${sdists[0]}" -C "$sdist_root_parent"
+          sdist_root=$(find "$sdist_root_parent" -mindepth 1 -maxdepth 1 -type d -print -quit)
+          test -d "$sdist_root"
+          (
+            cd "$sdist_root"
+            PATH="$smoke_root/sdist/bin:$PATH" PYTHONPATH=src make validate
+          )

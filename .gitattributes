@@ -1,0 +1,13 @@
+* text=auto
+*.json text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+Makefile text eol=lf
+LICENSE text eol=lf
+*.py[cod] -text
+__pycache__/** -text
+/evidence/results/bundle/liger/liger-rmsnorm/external/liger/tree/LICENSE whitespace=-trailing-space
+/evidence/results/bundle/liger/liger-rmsnorm/external/liger/tree/NOTICE whitespace=-trailing-space

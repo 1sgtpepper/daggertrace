@@ -1,0 +1,19 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Generated runtime packets are not checked in.
+artifacts/*
+!artifacts/README.md
+
+# Generated evidence outputs are not checked in.
+/evidence-output/

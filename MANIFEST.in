@@ -1,0 +1,16 @@
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include .github/PULL_REQUEST_TEMPLATE.md
+recursive-include .github/ISSUE_TEMPLATE *.md
+include Makefile
+include SOURCE_REVISION
+include artifacts/README.md
+recursive-include docs *.md
+recursive-include evidence *
+recursive-include scripts *.py *.sh
+recursive-include src/daggertrace/licenses *.txt
+recursive-include tests *.py
+include tests/fixtures/external/triton/LICENSE
+global-exclude __pycache__
+global-exclude *.py[cod]
